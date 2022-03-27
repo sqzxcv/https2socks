@@ -1,4 +1,5 @@
 use std::net::SocketAddr;
+use log::error;
 
 #[cfg(test)]
 mod tests {
@@ -16,6 +17,8 @@ pub mod http_local;
 mod consts;
 mod http_client;
 
-pub async fn startHttpsProxy(listen_addr: SocketAddr, proxy_address: SocketAddr) -> std::io::Result<()> {
-    http_local::run(listen_addr, proxy_address).await
+pub async fn startHttpsProxy(listen_addr: String, proxy_address: String) -> std::io::Result<()> {
+    let local_listen_addr: SocketAddr = listen_addr.parse().expect(format!("{:?} 地址不合法,解析失败", listen_addr).as_str());
+    let proxy_address_addr: SocketAddr = proxy_address.parse().expect(format!("{:?} 地址不合法,解析失败", proxy_address).as_str());
+    http_local::run(local_listen_addr, proxy_address_addr).await
 }
