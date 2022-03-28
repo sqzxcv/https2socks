@@ -9,8 +9,8 @@ path = "src/lib.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-tokio = { version = "0.2.11", features = ["rt-core","rt-threaded","rt-util","io-util","signal","tcp","stream"]}
-hyper = "0.13"
+tokio = { version = "=1.7.1", features = ["rt","io-util","signal"]}
+hyper = { version = "=0.14.9", features = ["full"]}
 bytes = "0.5.4"
 futures = "0.3.4"
 pin-project = "0.4.8"

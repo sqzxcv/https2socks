@@ -10,7 +10,7 @@ mod tests {
     }
 }
 
-pub mod monitor;
+
 pub mod address;
 pub mod socks5;
 pub mod http_local;

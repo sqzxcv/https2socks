@@ -12,7 +12,7 @@ use hyper::{
     Body, Request, Response,
 };
 
-use log::{debug, error, trace};
+use log::{debug, error, info, trace};
 use std::convert::Infallible;
 use std::net::SocketAddr;
 pub async fn run(listen_addr: SocketAddr, proxy_address: SocketAddr) -> std::io::Result<()> {
@@ -26,13 +26,16 @@ pub async fn run(listen_addr: SocketAddr, proxy_address: SocketAddr) -> std::io:
             }))
         }
     });
+    info!("http proxy server begin start at {:?}", listen_addr);
     let server = hyper::Server::bind(&listen_addr)
         .http1_only(true)
         .serve(make_service);
     if let Err(err) = server.await {
         use std::io::Error;
+        error!("http proxy server start failed:{:?}", err);
         return Err(Error::new(std::io::ErrorKind::Other, err));
     }
+
     Ok(())
 }
 
@@ -131,16 +134,17 @@ async fn server_dispatch(
             client_addr, addr, host
         );
         tokio::spawn(async move {
-            match req.into_body().on_upgrade().await {
+
+            match hyper::upgrade::on(req).await {
                 Ok(upgraded) => {
                     trace!(
-                        "CONNECT tunnel upgrade success, {} <-> {} ({})",
-                        client_addr,
-                        addr,
-                        host
-                    );
+                                "CONNECT tunnel upgrade success, {} <-> {} ({})",
+                                client_addr,
+                                addr,
+                                host
+                            );
                     establish_connect_tunnel(upgraded, stream, &addr, client_addr, host).await
-                }
+                },
                 Err(e) => {
                     error!(
                         "Failed to upgrade TCP tunnel {} <-> {} ({}), error: {}",
@@ -148,6 +152,24 @@ async fn server_dispatch(
                     );
                 }
             }
+
+            // match req.into_body().on_upgrade().await {
+            //     Ok(upgraded) => {
+            //         trace!(
+            //             "CONNECT tunnel upgrade success, {} <-> {} ({})",
+            //             client_addr,
+            //             addr,
+            //             host
+            //         );
+            //         establish_connect_tunnel(upgraded, stream, &addr, client_addr, host).await
+            //     }
+            //     Err(e) => {
+            //         error!(
+            //             "Failed to upgrade TCP tunnel {} <-> {} ({}), error: {}",
+            //             client_addr, addr, host, e
+            //         );
+            //     }
+            // }
         });
         let resp = Response::builder().body(Body::empty()).unwrap();
         return Ok(resp);
@@ -192,8 +214,8 @@ async fn establish_connect_tunnel(
     let (mut r, mut w) = split(upgraded);
     let (mut svr_r, mut svr_w) = stream.split();
 
-    let rhalf = copy(&mut r, &mut svr_w);
-    let whalf = copy(&mut svr_r, &mut w);
+    let rhalf = Box::pin(copy(&mut r, &mut svr_w));
+    let whalf = Box::pin(copy(&mut svr_r, &mut w));
 
     debug!(
         "CONNECT relay established {} <-> {} ({})",

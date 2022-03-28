@@ -4,7 +4,7 @@
 // mod http_local;
 // mod socks5;
 use log::info;
-use h2s::{monitor, http_local};
+use h2s::{http_local};
 use clap::{App, Arg};
 use futures::{
     future::{self, Either},
@@ -36,12 +36,12 @@ fn main() {
     let proxy_address: SocketAddr = "127.0.0.1:5180".parse().unwrap();
 
 
-    let mut builder = Builder::new();
-    if cfg!(feature = "single-threaded") {
-        builder.basic_scheduler();
-    } else {
-        builder.threaded_scheduler();
-    }
+    let mut builder = Builder::new_current_thread();
+    // if cfg!(feature = "single-threaded") {
+    //     builder.basic_scheduler();
+    // } else {
+    //     builder.threaded_scheduler();
+    // }
     info!("This is socks2http");
     let mut runtime = builder
         .enable_all()
